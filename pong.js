@@ -13,7 +13,8 @@ let p2score = 0;
 let paddle1Y = 250;
 let paddle2Y = 250;
 const P2_SPEED = 3;
-const SCORE_TO_WIN = 15;
+const SCORE_TO_WIN = 10;
+let showWinScreen = false;
 
 window.onload = function() {
    const fps = 60;
@@ -30,6 +31,8 @@ window.onload = function() {
          let mousePos = calculateMousePos(e);
          paddle1Y = mousePos.y - PADDLE_HEIGHT/2;
    });
+
+   canvas.addEventListener('click', handleMouseClick);
 }
 
 function calculateMousePos(e) {
@@ -44,10 +47,23 @@ function calculateMousePos(e) {
 }
 
 function move() {
+   if (showWinScreen) {
+      return;
+   }
+
    ballX += ballSpeedX;
-   if (ballX < PADDLE_SIDE_PADDING + PADDLE_WIDTH + BALL_RADIUS || 
-       ballX > canvas.width - PADDLE_SIDE_PADDING - PADDLE_WIDTH - BALL_RADIUS) {
+   if (ballX < PADDLE_SIDE_PADDING + PADDLE_WIDTH + BALL_RADIUS) {
       ballSpeedX = -ballSpeedX;
+
+      let deltaY = ballY - (paddle1Y + PADDLE_HEIGHT/2);
+      ballSpeedY = deltaY/PADDLE_HEIGHT*7;
+   } 
+
+   if (ballX > canvas.width - PADDLE_SIDE_PADDING - PADDLE_WIDTH - BALL_RADIUS) {
+      ballSpeedX = -ballSpeedX;
+
+      let deltaY = ballY - (paddle2Y + PADDLE_HEIGHT/2);
+      ballSpeedY = deltaY/PADDLE_HEIGHT*7;
    }
 
    ballY += ballSpeedY;
@@ -57,20 +73,29 @@ function move() {
    }
 
    moveP2Paddle();
-
    checkIfScored();
 }
 
-function draw() {
+function draw() {   
+   
    // canvas
    drawRect(0, 0, canvas.width, canvas.height, 'black');
+
+   if (showWinScreen) {
+      let winner = p1score === SCORE_TO_WIN ? "Player 1" : "Player 2";
+      canvasContext.fillStyle = 'white';
+      canvasContext.font = "20px Georgia";
+      canvasContext.fillText(`${winner} won! Click to continue...`, 260, 100);
+      return;
+   }
    // left paddle
    drawRect(PADDLE_SIDE_PADDING, paddle1Y, PADDLE_WIDTH, PADDLE_HEIGHT, 'white');
    // right paddle
    drawRect(canvas.width - PADDLE_SIDE_PADDING - PADDLE_WIDTH, paddle2Y, PADDLE_WIDTH, PADDLE_HEIGHT, 'white');
    // ball
    drawBall(ballX, ballY, BALL_RADIUS, 'white');
-
+   
+   canvasContext.font = "20px Georgia";
    canvasContext.fillText(`${p1score} - ${p2score}`, 400, 100);
 }
 
@@ -88,28 +113,44 @@ function drawBall(ballX, ballY, BALL_RADIUS, drawColor) {
 }
 
 function resetBall() {
+   if (p1score === SCORE_TO_WIN ||
+       p2score === SCORE_TO_WIN) {
+         showWinScreen = true;
+   }
+
    ballX = canvas.width/2;
    ballY = canvas.height/2;
+   ballSpeedY = (Math.random()-0.5)*10;
+
 }
 
 function checkIfScored() {
    if (ballX < PADDLE_SIDE_PADDING + PADDLE_WIDTH + BALL_RADIUS &&
       (ballY > paddle1Y + PADDLE_HEIGHT + BALL_RADIUS || ballY < paddle1Y - BALL_RADIUS)) {
-           resetBall();
-           p2score++;
-  }
+         p2score++;
+         resetBall();
+   }
   
   if (ballX > canvas.width - PADDLE_SIDE_PADDING - PADDLE_WIDTH - BALL_RADIUS &&
       (ballY > paddle2Y + PADDLE_HEIGHT + BALL_RADIUS || ballY < paddle2Y - BALL_RADIUS)) {
-           resetBall();
-           p1score++;
+         p1score++;
+         resetBall();
   }
 }
 
 function moveP2Paddle() {
-   if (ballY > paddle2Y + PADDLE_HEIGHT/2) {
-      paddle2Y += P2_SPEED;
-   } else {
-      paddle2Y -= P2_SPEED;
+   if (Math.abs(ballY - (paddle2Y + PADDLE_HEIGHT/2)) > 30) {
+      if (ballY > paddle2Y + PADDLE_HEIGHT/2) {
+         paddle2Y += P2_SPEED;
+      } else {
+         paddle2Y -= P2_SPEED;
+      }
+   }
+}
+
+function handleMouseClick(e) {
+   if (showWinScreen) {
+      showWinScreen = false;
+      p1score = p2score = 0;
    }
 }
